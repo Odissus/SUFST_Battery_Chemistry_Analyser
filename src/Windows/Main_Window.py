@@ -1,4 +1,5 @@
 from src.Windows.Window import Window
+from src.Windows.File_Parsing_Options_Winow import FileParsingOptionsWinow
 from src.File_Parser import FileParser
 from tkinter import *
 from tkinter import ttk
@@ -54,7 +55,7 @@ class MainWindow(Window):
         menubar_options = {"File": ["New", "Open", "Save", "Save As"],
                            "Tools": ["Parse a raw data file"]}
         menubar_functions = {"File": [None, None, None, None],
-                             "Tools": [None]}
+                             "Tools": [self.parse_raw_data_file]}
         menubar = Menu(self.master)
         self.master.config(menu=menubar)
 
@@ -74,4 +75,5 @@ class MainWindow(Window):
                 return
 
     def parse_raw_data_file(self):
-        fp = FileParser()
+        tl = self.create_top_level_and_lock(FileParsingOptionsWinow)
+        #fp = FileParser()

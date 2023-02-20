@@ -1,4 +1,6 @@
 from tkinter import *
+from tkinter import ttk
+from src.Windows import *
 
 
 class Window:
@@ -19,6 +21,39 @@ class Window:
         self.foreground_colour = "black"
         self.big_label_height = "2"
         self.small_label_height = "1"
+
+    def text_entry_with_label(self, frame=None, label_text="", entry_length=10):
+        """frame, entry_variable"""
+        if frame is None:
+            frame = ttk.Frame(self.master)
+        label = self.small_Label(label_text, master=frame)
+        label.grid(row=0, column=0)
+        entry_variable = StringVar(frame)
+        entry = ttk.Entry(frame, textvariable=entry_variable, width=entry_length)
+        entry.grid(row=0, column=1)
+        return frame, entry_variable
+
+    def tick_box_with_label(self, frame=None, label_text=""):
+        """frame, entry_variable"""
+        if frame is None:
+            frame = ttk.Frame(self.master)
+        label = self.small_Label(label_text, master=frame)
+        label.grid(row=0, column=0)
+        tick_variable = IntVar(value=1)
+        tick_box = ttk.Checkbutton(frame, variable=tick_variable)
+        tick_box.grid(row=0, column=1)
+        return frame, tick_variable
+
+    def text_entry_with_label_and_button(self, frame=None, label_text="", entry_length=None, button_icon=None, button_command=None):
+        """frame, entry_variable"""
+        frame, entry_variable = self.text_entry_with_label(frame=frame, label_text=label_text, entry_length=entry_length)
+        if isinstance(button_icon, str):
+            b = ttk.Button(frame, command=button_command, text=button_icon, width=len(button_icon)+3)
+        else:
+            b = ttk.Button(frame, command=button_command)
+        b.grid(row=0, column=2)
+        return frame, entry_variable
+
 
     def destroy(self):
         """
@@ -51,14 +86,14 @@ class Window:
                      height=self.big_label_height,
                      font=("Ariel", 14, "bold"))
 
-    def small_Label(self, text: str):
+    def small_Label(self, text: str, master=None):
         """
         Sylised body text label with custom text
 
         :param text: Text to appear in the label
         :return: Tkinter stylised label object
         """
-        return Label(self.master, text=text, height=self.small_label_height)
+        return Label(self.master if master is None else master, text=text, height=self.small_label_height)
 
     def show_window_and_hide(self, window_name):
         """
@@ -69,6 +104,13 @@ class Window:
         """
         self.master.withdraw()
         win = Toplevel()
+        window_obj = window_name(win, self)
+        return window_obj
+
+    def create_top_level_and_lock(self, window_name):
+        #self.master.grab_set()
+        win = Toplevel()
+        win.grab_set()
         window_obj = window_name(win, self)
         return window_obj
 
