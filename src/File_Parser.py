@@ -13,7 +13,7 @@ class FileParser:
         self.reduced_data_frame: pd.DataFrame = None
         self.constants: Dict[str: Any] = {}
 
-    def parse(self, skip_rows: int = 3, apply_fixes: bool = True, seperator='\s+', fix_time=True):
+    def parse(self, skip_rows: int = 3, apply_fixes: bool = True, seperator='\s+', fix_time=True, callback_function=None):
         def change_time(time_string):
             zero_time = datetime.datetime.strptime("00:00:0", "%H:%M:%S")
             format_data = "%H:%M:%S.%f"
@@ -28,10 +28,11 @@ class FileParser:
                     dt = datetime.datetime.strptime(time_string, format_data)
             time_difference = (dt - zero_time).total_seconds()
             return time_difference
+
         self.data_frame = pd.read_csv(self.filename, sep=seperator, skiprows=skip_rows)  # Needed to fix the unicode error
         self.reduced_data_frame = copy.deepcopy(self.data_frame)
         if apply_fixes:
-            for column in self.data_frame.columns:
+            for (i, column) in enumerate(self.data_frame.columns):
                 unique_values = self.data_frame[column].unique()
                 if fix_time:
                     if 'TIME' in column.upper():
@@ -40,6 +41,8 @@ class FileParser:
                 if len(unique_values) == 1:
                     self.constants.update({column: unique_values[0]})
                     del self.reduced_data_frame[column]
+                if callback_function is not None:
+                    callback_function(i+1,  len(self.data_frame.columns))
 
 
     def read(self):

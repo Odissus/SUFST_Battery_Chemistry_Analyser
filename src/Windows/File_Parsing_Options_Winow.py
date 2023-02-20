@@ -21,14 +21,22 @@ class FileParsingOptionsWinow(Window):
         ok_button.grid(row=2, column=0)
         cancel_button.grid(row=3, column=0)
 
+        self.progress = ttk.Progressbar(self.master, orient=HORIZONTAL, length=300, mode='determinate', maximum=100)
+        self.progress.grid(row=4, column=0)
+
     def destroy(self):
         self.unlock_parent_and_destroy()
+        #C:\Users\mateu\PycharmProjects\SUFST_Battery_Chemistry_Analyser\SUFST 1C-10C - RAW DATA.txt
+
+    def update_progress_bar_value(self, new_value, max_val):
+        self.progress['value'] = 100 * new_value/max_val
+        self.master.update_idletasks()
 
     def parse(self):
         path_to_file = self.path_to_file.get()
         apply_fixes = bool(self.apply_fixes.get())
         fp = FileParser(path_to_file)
-        fp.parse(apply_fixes=apply_fixes, fix_time=apply_fixes)
+        fp.parse(apply_fixes=apply_fixes, fix_time=apply_fixes, callback_function=self.update_progress_bar_value)
         new_filename = fd.asksaveasfilename(confirmoverwrite=True)
         fp.save_as(new_filename)
         messagebox.showinfo("Success!", "File parsed successfully and saved!")
