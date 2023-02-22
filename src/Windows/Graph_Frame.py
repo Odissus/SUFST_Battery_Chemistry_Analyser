@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+from typing import Dict, Any
 
 
 class GraphCanvas(tk.Frame):
@@ -11,13 +12,13 @@ class GraphCanvas(tk.Frame):
 
             # Create a new matplotlib figure
             self.fig = Figure(figsize=(5, 4), dpi=100)
-            self.fig.subplots_adjust(left=0.2, bottom=0.2, right=0.9, top=0.9)
+            #self.fig.subplots_adjust(left=0.1, bottom=0.1, right=1, top=1)
 
             # Add a subplot to the figure
             self.ax = self.fig.add_subplot(111)
-            self.ax.set_title("Sample Plot")
-            self.ax.set_xlabel("")
-            self.ax.set_ylabel("")
+            #self.ax.set_title("Sample Plot")
+            #self.ax.set_xlabel("")
+            #self.ax.set_ylabel("")
             self.ax.plot([1, 2, 3, 4], [10, 5, 8, 3])
             super().__init__(self.fig, master=self.master)
             self.draw()
@@ -26,14 +27,45 @@ class GraphCanvas(tk.Frame):
             w, h = event.width, event.height
             self.fig.set_size_inches(w / 100, h / 100)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, possible_axes=None, *args, **kwargs):
+        if possible_axes is None:
+            self.possible_axes = ["demo option 1", "demo option 2"]
+
         super().__init__(*args, **kwargs)
         self.graph_canvas = GraphCanvas._GraphCanvas(self)
-        self.graph_canvas.get_tk_widget().grid(row=0, column=0, rowspan=180, columnspan=9)
-        self.y_axis_button = ttk.Button(self)
-        self.y_axis_button.grid(row=170, column=4)
+        self.graph_canvas.get_tk_widget().grid(row=0, column=0, columnspan=2)
+
+        self.y_axis_label = ttk.Label(self, text="Y_axis: ")
+        self.y_axis_label.grid(row=1, column=0, sticky="e")
+
+        self.y_axis_label = ttk.Label(self, text="X_axis: ")
+        self.y_axis_label.grid(row=2, column=0, sticky="e")
+
+        self.y_axis = tk.StringVar(self)
+        self.y_axis.set(self.possible_axes[0])
+
+        # Create the ttk dropdown menu
+        self.y_axis_dropdown = ttk.Combobox(self, values=self.possible_axes, textvariable=self.y_axis, state="readonly")
+        self.y_axis_dropdown.grid(row=1, column=1, sticky="w")
+
+        self.x_axis = tk.StringVar(self)
+        self.x_axis.set(self.possible_axes[0])
+
+        # Create the ttk dropdown menu
+        self.x_axis_dropdown = ttk.Combobox(self, values=self.possible_axes, textvariable=self.x_axis, state="readonly")
+        self.x_axis_dropdown.grid(row=2, column=1, sticky="w")
+
+
+        #self.parameters: Dict[str, Any] = {}
+
+    def add_parameter(self, label_text: str, parameter_object):
+        raise NotImplementedError()
+        label = ttk.Label(self, text=label_text)
+        label.grid(row=2, column=0)
+        self.y_axis_label = ttk.Label(self, text="X_axis: ")
+        self.y_axis_label.grid(row=2, column=0)
         self.x_axis_button = ttk.Button(self)
-        self.x_axis_button.grid(row=90, column=0)
+        self.x_axis_button.grid(row=2, column=1)
 
 
 
