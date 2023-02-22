@@ -33,27 +33,45 @@ class GraphCanvas(tk.Frame):
 
         super().__init__(*args, **kwargs)
         self.graph_canvas = GraphCanvas._GraphCanvas(self)
-        self.graph_canvas.get_tk_widget().grid(row=0, column=0, columnspan=2)
+        self.graph_canvas.get_tk_widget().grid(row=0, column=0, columnspan=6)
 
-        self.y_axis_label = ttk.Label(self, text="Y_axis: ")
-        self.y_axis_label.grid(row=1, column=0, sticky="e")
-
-        self.y_axis_label = ttk.Label(self, text="X_axis: ")
-        self.y_axis_label.grid(row=2, column=0, sticky="e")
-
+        y_axis_label = ttk.Label(self, text="Y_axis: ")
+        y_axis_label.grid(row=1, column=0, sticky="e")
         self.y_axis = tk.StringVar(self)
         self.y_axis.set(self.possible_axes[0])
-
-        # Create the ttk dropdown menu
         self.y_axis_dropdown = ttk.Combobox(self, values=self.possible_axes, textvariable=self.y_axis, state="readonly")
         self.y_axis_dropdown.grid(row=1, column=1, sticky="w")
+        y_axis_domain_label = ttk.Label(self, text="Domain: ")
+        y_axis_domain_label.grid(row=1, column=2, sticky="e")
+        self.min_y_axis = tk.StringVar(self)
+        self.min_y_axis.set("")
+        y_axis_min_value_entry = ttk.Entry(self, textvariable=self.min_y_axis, width=5)
+        y_axis_min_value_entry.grid(row=1, column=3, sticky="w")
+        y_axis_label = ttk.Label(self, text=" to ")
+        y_axis_label.grid(row=1, column=4)
+        self.max_y_axis = tk.StringVar(self)
+        self.max_y_axis.set("")
+        y_axis_max_value_entry = ttk.Entry(self, textvariable=self.min_y_axis, width=5)
+        y_axis_max_value_entry.grid(row=1, column=5, sticky="w")
 
+        x_axis_label = ttk.Label(self, text="X_axis: ")
+        x_axis_label.grid(row=2, column=0, sticky="e")
         self.x_axis = tk.StringVar(self)
         self.x_axis.set(self.possible_axes[0])
-
-        # Create the ttk dropdown menu
-        self.x_axis_dropdown = ttk.Combobox(self, values=self.possible_axes, textvariable=self.x_axis, state="readonly")
-        self.x_axis_dropdown.grid(row=2, column=1, sticky="w")
+        x_axis_dropdown = ttk.Combobox(self, values=self.possible_axes, textvariable=self.x_axis, state="readonly")
+        x_axis_dropdown.grid(row=2, column=1, sticky="w")
+        x_axis_domain_label = ttk.Label(self, text="Domain: ")
+        x_axis_domain_label.grid(row=2, column=2, sticky="e")
+        self.min_x_axis = tk.StringVar(self)
+        self.min_x_axis.set("")
+        x_axis_min_value_entry = ttk.Entry(self, textvariable=self.min_x_axis, width=5)
+        x_axis_min_value_entry.grid(row=2, column=3, sticky="w")
+        x_axis_label = ttk.Label(self, text=" to ")
+        x_axis_label.grid(row=2, column=4)
+        self.max_x_axis = tk.StringVar(self)
+        self.max_x_axis.set("")
+        x_axis_max_value_entry = ttk.Entry(self, textvariable=self.max_x_axis, width=5)
+        x_axis_max_value_entry.grid(row=2, column=5, sticky="w")
 
 
         #self.parameters: Dict[str, Any] = {}
