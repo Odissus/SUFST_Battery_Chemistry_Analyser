@@ -5,13 +5,23 @@ from src.File_Parser import FileParser
 from tkinter import *
 from tkinter import ttk
 from PIL import Image, ImageTk
-from typing import Iterable
+from typing import List
 import pandas as pd
 
 
 class MainWindow(Window):
-    def __init__(self, master: Tcl, headings: Iterable[str]):
+    __data = None
+    __constants = None
+
+    def __init__(self, master: Tcl, headings: List[str], data=None, constants=None):
         super().__init__(master, title="SUFST Battery Analyser", geometry="1920x1080")
+        GraphCanvas.update_axis_options(headings)
+        if data is not None:
+            MainWindow.__data = data
+            GraphCanvas.update_data(data)
+
+        if constants is not None:
+            MainWindow.__constants = constants
 
         self.top_frame = Frame(self.master)
         self.top_frame.grid(row=0, column=0)
@@ -73,9 +83,9 @@ class MainWindow(Window):
                 menu_option_widget.add_command(label=item, command=function)
             menubar.add_cascade(label=menu_option, menu=menu_option_widget)
 
-        #c1=GraphCanvas(master=self.master)
-        #c1.get_tk_widget().grid(row=1, sticky="nsew")
-        #self.master.bind('<Configure>', c1.on_resize)
+        # c1=GraphCanvas(master=self.master)
+        # c1.get_tk_widget().grid(row=1, sticky="nsew")
+        # self.master.bind('<Configure>', c1.on_resize)
 
         # Create a button to add columns to the second row
         self.add_column_button = Button(self.top_frame, text="Add Column", command=self.add_graph)
@@ -95,9 +105,9 @@ class MainWindow(Window):
         column_number = len(self.graph_canvases) + 1
         graph_canvas = GraphCanvas(master=self.bottom_frame)
         graph_canvas.grid(row=0, column=column_number - 1, sticky="nsew", padx=10, pady=10)
-        #self.master.bind('<Configure>', graph_canvas.on_resize)
-        #label = Label(self.bottom_frame, text="Column {}".format(column_number))
-        #label.grid(row=0, column=column_number - 1, padx=10, pady=10)
+        # self.master.bind('<Configure>', graph_canvas.on_resize)
+        # label = Label(self.bottom_frame, text="Column {}".format(column_number))
+        # label.grid(row=0, column=column_number - 1, padx=10, pady=10)
 
         # Add the label to the list of labels
         self.graph_canvases.append(graph_canvas)
@@ -128,4 +138,4 @@ class MainWindow(Window):
 
     def parse_raw_data_file(self):
         tl = self.create_top_level_and_lock(FileParsingOptionsWinow)
-        #fp = FileParser()
+        # fp = FileParser()
