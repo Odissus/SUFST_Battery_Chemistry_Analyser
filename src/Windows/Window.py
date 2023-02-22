@@ -13,7 +13,7 @@ class Window:
         :param geometry: outlines window size in pixels eg 1000x1000
         :param parent: parent window, necessary when going back from this window to open the parent
         """
-        self.parent = parent
+        self.master = parent
         self.master = master
         self.master.title(title)
         self.master.geometry(geometry)
@@ -124,8 +124,8 @@ class Window:
         """
         Unlocks the parent window if such exists and destroys this window
         """
-        if self.parent is not None:
-            self.parent.unlock()
+        if self.master is not None:
+            self.master.unlock()
         self.master.destroy()
 
 

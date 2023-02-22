@@ -12,7 +12,7 @@ import pandas as pd
 class FileParsingOptionsWinow(Window):
     def __init__(self, master, parent):
         super().__init__(master, title="Parse Raw Data", geometry="500x200", parent=parent)
-        frame, self.path_to_file = self.text_entry_with_label_and_button(label_text="Path to file", entry_length=50, button_icon="📁", button_command=None)
+        frame, self.path_to_file = self.text_entry_with_label_and_button(label_text="Path to file", entry_length=50, button_icon="📁", button_command=self.fill_path_with_button)
         frame.grid(row=0, column=0)
         frame, self.apply_fixes = self.tick_box_with_label(label_text="Apply fixes")
         frame.grid(row=1, column=0)
@@ -23,6 +23,10 @@ class FileParsingOptionsWinow(Window):
 
         self.progress = ttk.Progressbar(self.master, orient=HORIZONTAL, length=300, mode='determinate', maximum=100)
         self.progress.grid(row=4, column=0)
+
+    def fill_path_with_button(self):
+        path = fd.askopenfilename()
+        self.path_to_file.set(path)
 
     def destroy(self):
         self.unlock_parent_and_destroy()
@@ -38,6 +42,11 @@ class FileParsingOptionsWinow(Window):
         fp = FileParser(path_to_file)
         fp.parse(apply_fixes=apply_fixes, fix_time=apply_fixes, callback_function=self.update_progress_bar_value)
         new_filename = fd.asksaveasfilename(confirmoverwrite=True)
+        if new_filename == "":
+            self.progress['value'] = 0
+            return
+        elif "." not in new_filename:
+            new_filename = new_filename + ".csv"
         fp.save_as(new_filename)
         messagebox.showinfo("Success!", "File parsed successfully and saved!")
         self.destroy()

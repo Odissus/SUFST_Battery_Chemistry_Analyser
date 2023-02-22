@@ -1,5 +1,6 @@
 from src.Windows.Window import Window
 from src.Windows.File_Parsing_Options_Winow import FileParsingOptionsWinow
+from src.Windows.Graph_Frame import GraphCanvas
 from src.File_Parser import FileParser
 from tkinter import *
 from tkinter import ttk
@@ -11,14 +12,22 @@ import pandas as pd
 class MainWindow(Window):
     def __init__(self, master: Tcl, headings: Iterable[str]):
         super().__init__(master, title="SUFST Battery Analyser", geometry="1920x1080")
+
+        self.top_frame = Frame(self.master)
+        self.top_frame.grid(row=0, column=0)
+
+        # Create a frame for the bottom row of columns
+        self.bottom_frame = Frame(self.master)
+        self.bottom_frame.grid(row=1, column=0)
+
         # create a 3x3 grid
-        left_frame = Frame(self.master, borderwidth=2, relief="ridge")
+        left_frame = Frame(self.top_frame, borderwidth=2, relief="ridge")
         left_frame.grid(row=0, column=0)
 
         text_label = Label(left_frame, text="hello")
         text_label.pack()
 
-        middle_frame = Frame(self.master, borderwidth=2, relief="ridge")
+        middle_frame = Frame(self.top_frame, borderwidth=2, relief="ridge")
         middle_frame.grid(row=0, column=1)
 
         # headings = ['Product ID', 'Product Name', 'Product Price', 'Product Stock', 'Product Type']
@@ -45,7 +54,7 @@ class MainWindow(Window):
         # scrollbar
         verscrlbar.pack(side='right', fill='x')
 
-        right_frame = Frame(self.master, borderwidth=2, relief="ridge")
+        right_frame = Frame(self.top_frame, borderwidth=2, relief="ridge")
         right_frame.grid(row=0, column=2)
 
         text_label = Label(right_frame, text="hello")
@@ -58,12 +67,51 @@ class MainWindow(Window):
                              "Tools": [self.parse_raw_data_file]}
         menubar = Menu(self.master)
         self.master.config(menu=menubar)
-
         for menu_option in menubar_options.keys():
             menu_option_widget = Menu(menubar, tearoff=False)
             for item, function in zip(menubar_options[menu_option], menubar_functions[menu_option]):
                 menu_option_widget.add_command(label=item, command=function)
             menubar.add_cascade(label=menu_option, menu=menu_option_widget)
+
+        #c1=GraphCanvas(master=self.master)
+        #c1.get_tk_widget().grid(row=1, sticky="nsew")
+        #self.master.bind('<Configure>', c1.on_resize)
+
+        # Create a button to add columns to the second row
+        self.add_column_button = Button(self.top_frame, text="Add Column", command=self.add_graph)
+        self.add_column_button.grid(row=1, column=0, padx=10, pady=10)
+
+        # Create a button to remove columns from the second row
+        self.remove_column_button = Button(self.top_frame, text="Remove Column", command=self.remove_graph)
+        self.remove_column_button.grid(row=1, column=1, padx=10, pady=10)
+
+        self.labels = []
+
+        for i in range(3):
+            self.top_frame.columnconfigure(i, weight=1)
+
+    def add_graph(self):
+        # Create a new label with the current number of columns
+        column_number = len(self.labels) + 1
+        label = Label(self.bottom_frame, text="Column {}".format(column_number))
+        label.grid(row=0, column=column_number - 1, padx=10, pady=10)
+
+        # Add the label to the list of labels
+        self.labels.append(label)
+
+        # Set the column weight for the new column
+        self.bottom_frame.columnconfigure(column_number, weight=1)
+
+    def remove_graph(self):
+        if len(self.labels) > 0:
+            # Remove the last label from the list of labels
+            label = self.labels.pop()
+
+            # Remove the label from the grid
+            label.grid_forget()
+
+            # Set the column weight for the last column to 0
+            self.master.columnconfigure(len(self.labels) + 1, weight=0)
 
     def update_table_headings(self, headings):
         raise NotImplementedError("Changing headings at runtime is not implemented")
