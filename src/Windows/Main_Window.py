@@ -85,38 +85,42 @@ class MainWindow(Window):
         self.remove_column_button = Button(self.top_frame, text="Remove Column", command=self.remove_graph)
         self.remove_column_button.grid(row=1, column=1, padx=10, pady=10)
 
-        self.labels = []
+        self.graph_canvases = []
 
         for i in range(3):
             self.top_frame.columnconfigure(i, weight=1)
 
     def add_graph(self):
         # Create a new label with the current number of columns
-        column_number = len(self.labels) + 1
-        label = Label(self.bottom_frame, text="Column {}".format(column_number))
-        label.grid(row=0, column=column_number - 1, padx=10, pady=10)
+        column_number = len(self.graph_canvases) + 1
+        graph_canvas = GraphCanvas(master=self.bottom_frame)
+        graph_canvas.grid(row=0, column=column_number - 1, sticky="nsew", padx=10, pady=10)
+        #self.master.bind('<Configure>', graph_canvas.on_resize)
+        #label = Label(self.bottom_frame, text="Column {}".format(column_number))
+        #label.grid(row=0, column=column_number - 1, padx=10, pady=10)
 
         # Add the label to the list of labels
-        self.labels.append(label)
+        self.graph_canvases.append(graph_canvas)
 
         # Set the column weight for the new column
         self.bottom_frame.columnconfigure(column_number, weight=1)
 
     def remove_graph(self):
-        if len(self.labels) > 0:
+        if len(self.graph_canvases) > 0:
             # Remove the last label from the list of labels
-            label = self.labels.pop()
+            graph_canvas = self.graph_canvases.pop()
 
             # Remove the label from the grid
-            label.grid_forget()
+            graph_canvas.grid_forget()
 
             # Set the column weight for the last column to 0
-            self.master.columnconfigure(len(self.labels) + 1, weight=0)
+            self.bottom_frame.columnconfigure(len(self.graph_canvases) + 1, weight=0)
 
     def update_table_headings(self, headings):
         raise NotImplementedError("Changing headings at runtime is not implemented")
 
     def populate_table(self, df: pd.DataFrame):
+        return
         for i, row in df.iterrows():
             self.tv.insert('', i, text=str(i), values=list(row))
             if i > 100:
