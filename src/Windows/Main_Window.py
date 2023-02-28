@@ -13,8 +13,9 @@ class MainWindow(Window):
     __data = None
     __constants = None
 
-    def __init__(self, master: Tcl, headings: List[str], data=None, constants=None):
+    def __init__(self, master: Tcl, data=None, constants=None):
         super().__init__(master, title="SUFST Battery Analyser", geometry="1920x1080")
+        headings = list(data.columns)
         GraphCanvas.update_axis_options(headings)
         if data is not None:
             MainWindow.__data = data
@@ -43,6 +44,7 @@ class MainWindow(Window):
         # headings = ['Product ID', 'Product Name', 'Product Price', 'Product Stock', 'Product Type']
 
         # Treeview is tkinter implementation of a table
+
         self.tv = ttk.Treeview(middle_frame)
         self.tv['columns'] = tuple(headings)
 

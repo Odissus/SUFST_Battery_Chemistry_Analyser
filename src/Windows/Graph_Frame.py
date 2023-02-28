@@ -1,9 +1,194 @@
 import tkinter as tk
 from tkinter import ttk
+from src.Windows.Tooltip import ToolTip
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from typing import Dict, Any, Iterable, List
 import numpy as np
+import scipy.integrate as integrate
+import scipy.optimize as optimise
+from numpy.polynomial import Polynomial
+
+
+class GraphCommand(tk.Frame):
+    def __init__(self, master, command_index: int):
+        super().__init__(master)
+        self.master = master
+        self.command_index = command_index
+
+    def delete(self):
+        super().grid_forget()
+        index = self.command_index
+        self.master.commands.remove(self)
+        self.master.regrid_commands()
+
+
+class CurveFit(GraphCommand):
+    _curve_fits = ["Polynomial", "Exponential", "Logarithmic"]
+
+    def __init__(self, master, command_index: int):
+        super().__init__(master, command_index)
+        validate = master.register(self._validate_limit)
+        self.remove_command_button = ttk.Button(self, text="-", width=3, command=self.delete)
+        self.remove_command_button.grid(row=0, column=0)
+
+        self.method = tk.StringVar(master)
+        self.method.set(CurveFit._curve_fits[0])
+        method_dropdown = ttk.Combobox(self, values=Integrate._integration_methods,
+                                       textvariable=self.method,
+                                       state="readonly", width=15)
+        method_dropdown.grid(row=0, column=1, sticky="w")
+
+        self.integration_option = tk.StringVar(master)
+        self.integration_option.set(" fit where n = ")
+        label = ttk.Label(self, textvariable=self.integration_option)
+        label.grid(row=0, column=2)
+
+        self.control_variable = tk.StringVar(master)
+        self.control_variable.set("")
+        control_value_entry = ttk.Entry(self, textvariable=self.control_variable, width=3, validate='key',
+                                        validatecommand=(validate, '%P'))
+        control_value_entry.grid(row=0, column=3)
+
+        label = ttk.Label(self, text=" between ")
+        label.grid(row=0, column=4)
+
+        self.min_limit = tk.StringVar(master)
+        self.min_limit.set("")
+        min_value_entry = ttk.Entry(self, textvariable=self.min_limit, width=7, validate='key',
+                                    validatecommand=(validate, '%P'))
+        min_value_entry.grid(row=0, column=5)
+
+        label = ttk.Label(self, text="and")
+        label.grid(row=0, column=6)
+
+        self.max_limit = tk.StringVar(master)
+        self.max_limit.set("")
+        max_value_entry = ttk.Entry(self, textvariable=self.max_limit, width=7, validate='key',
+                                    validatecommand=(validate, '%P'))
+        max_value_entry.grid(row=0, column=7)
+
+        self.go_button = ttk.Button(self, text="Go", width=5, command=self.curve_fit)
+        self.go_button.grid(row=0, column=8)
+
+        self.result = tk.StringVar(master)
+        self.result.set("")
+        self.result_label = ttk.Entry(self, textvariable=self.result, width=50, state="readonly")
+        self.result_label.grid(row=1, column=1, columnspan=8, sticky="e")
+
+    def _validate_limit(self, new_value):
+        # If the new value is empty, allow it
+        if new_value == '' or new_value == '-':
+            return True
+        # Try to convert the new value to a float
+        try:
+            value = float(new_value)
+        except ValueError:
+            # self.errors.update({""})
+            return False
+        # If the new value is not between 3 and 5, disallow it
+        # if value < 3 or value > 5:
+        #    return False
+        # Allow the new value
+        return True
+
+    def curve_fit(self):
+        # optimise.curve_fit() - to be used for custom function, might implement this, might not
+        method = self.method.get()
+        xs, ys = self.master.xs, self.master.ys
+        if method == CurveFit._curve_fits[0]:
+            degree = int(self.control_variable.get())
+            coef = np.round(np.polyfit(xs, ys, degree), 5)
+            result = "+".join([f"{c}x^{len(coef)-i-1}" for (i, c) in enumerate(coef)])
+        elif method == CurveFit._curve_fits[1]:
+            result = integrate.simpson(ys, xs, dx=1)
+        self.result.set(result)
+
+
+class Integrate(GraphCommand):
+    _integration_methods = ["Trapezoidal", "Simpson", "Newton-Cotes"]
+
+    def __init__(self, master, command_index: int):
+        super().__init__(master, command_index)
+        validate = master.register(self._validate_limit)
+
+        self.remove_command_button = ttk.Button(self, text="-", width=3, command=self.delete)
+        self.remove_command_button.grid(row=0, column=0)
+
+        self.integration_methods = tk.StringVar(master)
+        self.integration_methods.set(Integrate._integration_methods[0])
+        self.method_dropdown = ttk.Combobox(self, values=Integrate._integration_methods,
+                                            textvariable=self.integration_methods,
+                                            state="readonly", width=15)
+        self.method_dropdown.grid(row=0, column=1, sticky="w")
+
+        self.integration_option = tk.StringVar(master)
+        self.integration_option.set(" integration where n = ")
+        label = ttk.Label(self, textvariable=self.integration_option)
+        label.grid(row=0, column=2)
+
+        self.control_variable = tk.StringVar(master)
+        self.control_variable.set("")
+        control_value_entry = ttk.Entry(self, textvariable=self.control_variable, width=3, validate='key',
+                                        validatecommand=(validate, '%P'))
+        control_value_entry.grid(row=0, column=3)
+
+        label = ttk.Label(self, text=" between ")
+        label.grid(row=0, column=4)
+
+        self.min_limit = tk.StringVar(master)
+        self.min_limit.set("")
+        min_value_entry = ttk.Entry(self, textvariable=self.min_limit, width=7, validate='key',
+                                    validatecommand=(validate, '%P'))
+        min_value_entry.grid(row=0, column=5)
+
+        label = ttk.Label(self, text="and")
+        label.grid(row=0, column=6)
+
+        self.max_limit = tk.StringVar(master)
+        self.max_limit.set("")
+        max_value_entry = ttk.Entry(self, textvariable=self.max_limit, width=7, validate='key',
+                                    validatecommand=(validate, '%P'))
+        max_value_entry.grid(row=0, column=7)
+
+        self.go_button = ttk.Button(self, text="Go", width=5, command=self.integrate)
+        self.go_button.grid(row=0, column=8)
+
+        # self.method_dropdown.bind('<<ComboboxSelected>>', self._update_graph)
+
+        self.result = tk.StringVar(master)
+        self.result.set("")
+        self.result_label = ttk.Entry(self, textvariable=self.result, width=30, state="readonly")
+        self.result_label.grid(row=1, column=1, columnspan=8, sticky="e")
+
+    def _validate_limit(self, new_value):
+        # If the new value is empty, allow it
+        if new_value == '' or new_value == '-':
+            return True
+        # Try to convert the new value to a float
+        try:
+            value = float(new_value)
+        except ValueError:
+            # self.errors.update({""})
+            return False
+        # If the new value is not between 3 and 5, disallow it
+        # if value < 3 or value > 5:
+        #    return False
+        # Allow the new value
+        return True
+
+    def integrate(self):
+        integration_method = self.integration_methods.get()
+        xs, ys = self.master.xs, self.master.ys
+        if integration_method == Integrate._integration_methods[0]:
+            result = integrate.trapezoid(ys, xs, dx=1)
+        elif integration_method == Integrate._integration_methods[1]:
+            result = integrate.simpson(ys, xs, dx=1)
+        self.result.set(result)
+
+    @property
+    def graph_command(self):
+        return "Integrate"
 
 
 class GraphCanvas(tk.Frame):
@@ -17,7 +202,7 @@ class GraphCanvas(tk.Frame):
             self.master = master
 
             # Create a new matplotlib figure
-            self.fig = Figure(figsize=(5, 4), dpi=100)
+            self.fig = Figure(figsize=(4, 3), dpi=100)
             # self.fig.subplots_adjust(left=0.1, bottom=0.1, right=1, top=1)
 
             # Add a subplot to the figure
@@ -41,21 +226,31 @@ class GraphCanvas(tk.Frame):
         try:
             value = float(new_value)
         except ValueError:
-            #self.errors.update({""})
+            # self.errors.update({""})
             return False
         # If the new value is not between 3 and 5, disallow it
-        #if value < 3 or value > 5:
+        # if value < 3 or value > 5:
         #    return False
         # Allow the new value
         return True
 
+    def regrid_commands(self):
+        for (index, command) in zip(range(len(self.commands)), self.commands):
+            self.rowconfigure(index + 3, weight=2)
+            self.commands[index].grid(row=index + 3, column=0, columnspan=5)
+        self.add_command_dropdown.grid(row=len(self.commands) + 3, column=0, columnspan=5)
+        self.add_command_button.grid(row=len(self.commands) + 3, column=5)
+        self.rowconfigure(len(self.commands), weight=1)
+
     def __init__(self, master, *args, **kwargs):
-        #self.master = master
+        # self.master = master
         GraphCanvas.__instances.append(self)
         super().__init__(master=master, *args, **kwargs)
         validate = master.register(self.validate_limit)
+        self.commands = []
         self.errors = {}
         self.current_axis_limits = []
+        self.xs, self.ys = np.array([]), np.array([])
 
         self.graph_canvas = GraphCanvas._GraphCanvas(self)
         self.graph_canvas.get_tk_widget().grid(row=0, column=0, columnspan=6)
@@ -72,14 +267,16 @@ class GraphCanvas(tk.Frame):
         y_axis_domain_label.grid(row=1, column=2, sticky="e")
         self.min_y_axis = tk.StringVar(self)
         self.min_y_axis.set("")
-        y_axis_min_value_entry = ttk.Entry(self, textvariable=self.min_y_axis, width=7, validate='key', validatecommand=(validate, '%P'))
+        y_axis_min_value_entry = ttk.Entry(self, textvariable=self.min_y_axis, width=7, validate='key',
+                                           validatecommand=(validate, '%P'))
         y_axis_min_value_entry.grid(row=1, column=3)
         y_axis_min_value_entry.bind('<KeyRelease>', self._update_graph)
         y_axis_label = ttk.Label(self, text=" to ")
         y_axis_label.grid(row=1, column=4)
         self.max_y_axis = tk.StringVar(self)
         self.max_y_axis.set("")
-        y_axis_max_value_entry = ttk.Entry(self, textvariable=self.max_y_axis, width=7, validate='key', validatecommand=(validate, '%P'))
+        y_axis_max_value_entry = ttk.Entry(self, textvariable=self.max_y_axis, width=7, validate='key',
+                                           validatecommand=(validate, '%P'))
         y_axis_max_value_entry.grid(row=1, column=5)
         y_axis_max_value_entry.bind('<KeyRelease>', self._update_graph)
 
@@ -95,14 +292,16 @@ class GraphCanvas(tk.Frame):
         x_axis_domain_label.grid(row=2, column=2, sticky="e")
         self.min_x_axis = tk.StringVar(self)
         self.min_x_axis.set("")
-        x_axis_min_value_entry = ttk.Entry(self, textvariable=self.min_x_axis, width=7, validate='key', validatecommand=(validate, '%P'))
+        x_axis_min_value_entry = ttk.Entry(self, textvariable=self.min_x_axis, width=7, validate='key',
+                                           validatecommand=(validate, '%P'))
         x_axis_min_value_entry.grid(row=2, column=3)
         x_axis_min_value_entry.bind('<KeyRelease>', self._update_graph)
         x_axis_label = ttk.Label(self, text=" to ")
         x_axis_label.grid(row=2, column=4)
         self.max_x_axis = tk.StringVar(self)
         self.max_x_axis.set("")
-        x_axis_max_value_entry = ttk.Entry(self, textvariable=self.max_x_axis, width=7, validate='key', validatecommand=(validate, '%P'))
+        x_axis_max_value_entry = ttk.Entry(self, textvariable=self.max_x_axis, width=7, validate='key',
+                                           validatecommand=(validate, '%P'))
         x_axis_max_value_entry.grid(row=2, column=5)
         x_axis_max_value_entry.bind('<KeyRelease>', self._update_graph)
 
@@ -112,10 +311,28 @@ class GraphCanvas(tk.Frame):
                                                  textvariable=self.new_command,
                                                  state="readonly", width=70)
         self.add_command_dropdown.grid(row=3, column=0, columnspan=5)
-        self.add_command_button = ttk.Button(self, text="+", width=3)
+        self.add_command_button = ttk.Button(self, text="+", width=3, command=self.add_command)
         self.add_command_button.grid(row=3, column=5)
-
+        for i in range(3):
+            self.rowconfigure(i + 1, weight=1)
         # self.parameters: Dict[str, Any] = {}
+
+    def add_command(self):
+        command_to_add = self.new_command.get()
+        if command_to_add == GraphCanvas.__graph_commands[2]:
+            new_frame = Integrate(self, len(self.commands))
+        elif command_to_add == GraphCanvas.__graph_commands[3]:
+            new_frame = CurveFit(self, len(self.commands))
+        else:
+            return
+        self.commands.append(new_frame)
+        row_number = len(self.commands) + 3
+        new_frame.grid(row=row_number - 1, column=0, columnspan=6, sticky="nsew")
+        # Set the column weight for the new column
+        self.rowconfigure(row_number - 1, weight=2)
+        self.add_command_dropdown.grid(row=row_number, column=0, columnspan=5)
+        self.add_command_button.grid(row=row_number, column=5)
+        self.rowconfigure(row_number, weight=1)
 
     def _update_graph_axis_options(self):
         self.y_axis_dropdown.configure(values=GraphCanvas.__possible_axes)
@@ -135,15 +352,16 @@ class GraphCanvas(tk.Frame):
         x_min = -np.inf if x_min in ["", "-"] else float(x_min)
         x_max = np.inf if x_max in ["", "-"] else float(x_max)
 
-        print(y_min, y_max, x_min, x_max)
-
         subset = GraphCanvas.__data.loc[(GraphCanvas.__data[y_col] > y_min) &
                                         (GraphCanvas.__data[y_col] < y_max) &
                                         (GraphCanvas.__data[x_col] > x_min) &
                                         (GraphCanvas.__data[x_col] < x_max), [y_col, x_col]]
-        y_values, x_values = subset[y_col], subset[x_col]
+        self.xs, self.ys = np.array(subset[x_col]), np.array(subset[y_col])
+        if len(self.xs.shape) == 2:
+            self.xs, self.ys = self.xs.T[0], self.xs.T[0]
+        print(self.xs)
         self.graph_canvas.ax.cla()
-        self.graph_canvas.ax.plot(x_values, y_values)
+        self.graph_canvas.ax.plot(self.xs, self.ys)
         self.graph_canvas.draw()
 
     @classmethod
@@ -156,15 +374,6 @@ class GraphCanvas(tk.Frame):
     @classmethod
     def update_data(cls, new_data):
         cls.__data = new_data
-
-    def add_parameter(self, label_text: str, parameter_object):
-        raise NotImplementedError()
-        label = ttk.Label(self, text=label_text)
-        label.grid(row=2, column=0)
-        self.y_axis_label = ttk.Label(self, text="X_axis: ")
-        self.y_axis_label.grid(row=2, column=0)
-        self.x_axis_button = ttk.Button(self)
-        self.x_axis_button.grid(row=2, column=1)
 
 
 if __name__ == "__main__":
