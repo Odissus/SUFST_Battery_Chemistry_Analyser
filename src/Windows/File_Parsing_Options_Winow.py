@@ -16,13 +16,15 @@ class FileParsingOptionsWinow(Window):
         frame.grid(row=0, column=0)
         frame, self.apply_fixes = self.tick_box_with_label(label_text="Apply fixes")
         frame.grid(row=1, column=0)
+        frame, self.ravel_time = self.tick_box_with_label(label_text="Ravel time")
+        frame.grid(row=2, column=0)
         ok_button = ttk.Button(self.master, text="OK", command=self.parse)
         cancel_button = ttk.Button(self.master, text="Cancel", command=self.destroy)
-        ok_button.grid(row=2, column=0)
-        cancel_button.grid(row=3, column=0)
+        ok_button.grid(row=3, column=0)
+        cancel_button.grid(row=4, column=0)
 
         self.progress = ttk.Progressbar(self.master, orient=HORIZONTAL, length=300, mode='determinate', maximum=100)
-        self.progress.grid(row=4, column=0)
+        self.progress.grid(row=5, column=0)
 
     def fill_path_with_button(self):
         path = fd.askopenfilename()
@@ -39,8 +41,12 @@ class FileParsingOptionsWinow(Window):
     def parse(self):
         path_to_file = self.path_to_file.get()
         apply_fixes = bool(self.apply_fixes.get())
+        ravel_time = bool(self.ravel_time.get())
         fp = FileParser(path_to_file)
-        fp.parse(apply_fixes=apply_fixes, fix_time=apply_fixes, callback_function=self.update_progress_bar_value)
+        fp.parse(apply_fixes=apply_fixes,
+                 fix_time=apply_fixes,
+                 callback_function=self.update_progress_bar_value,
+                 ravel_time=ravel_time)
         new_filename = fd.asksaveasfilename(confirmoverwrite=True)
         if new_filename == "":
             self.progress['value'] = 0

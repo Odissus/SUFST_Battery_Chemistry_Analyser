@@ -5,13 +5,33 @@ from src.File_Parser import FileParser
 from tkinter import *
 from tkinter import ttk
 from PIL import Image, ImageTk
-from typing import List
+from typing import List, Tuple, Any, Union, Dict
 import pandas as pd
 
 
 class MainWindow(Window):
     __data = None
     __constants = None
+
+    class LeftFrame(Frame):
+        def __init__(self, master, constants: Union[None, Dict[str, Any]] = None, *args, **kwargs):
+            super().__init__(master, *args, **kwargs)
+            self.master = master
+            self.constants_boxes = []
+            if constants is not None:
+                self.apply_constants(constants)
+
+        def apply_constants(self, constants: Dict[str, Any]):
+            text = ttk.Label(self, text="Constants")
+            text.grid(column=0, row=0, columnspan=2)
+            for (i, constant) in enumerate(constants):
+                text = ttk.Label(self, text=constant)
+                text.grid(column=0, row=i+1)
+                value_var = StringVar()
+                value_var.set(constants[constant])
+                value = ttk.Entry(self, textvariable=value_var, width=10, state="readonly")
+                value.grid(column=1, row=i+1)
+                self.constants_boxes.append((text, value, value_var))
 
     def __init__(self, master: Tcl, data=None, constants=None):
         super().__init__(master, title="SUFST Battery Analyser", geometry="1920x1080")
@@ -32,13 +52,10 @@ class MainWindow(Window):
         self.bottom_frame.grid(row=1, column=0)
 
         # create a 3x3 grid
-        left_frame = Frame(self.top_frame, borderwidth=2, relief="ridge")
+        left_frame = MainWindow.LeftFrame(self.top_frame, constants=MainWindow.__constants)
         left_frame.grid(row=0, column=0)
 
-        text_label = Label(left_frame, text="hello")
-        text_label.pack()
-
-        middle_frame = Frame(self.top_frame, borderwidth=2, relief="ridge")
+        middle_frame = Frame(self.top_frame)
         middle_frame.grid(row=0, column=1)
 
         # headings = ['Product ID', 'Product Name', 'Product Price', 'Product Stock', 'Product Type']
@@ -85,10 +102,6 @@ class MainWindow(Window):
                 menu_option_widget.add_command(label=item, command=function)
             menubar.add_cascade(label=menu_option, menu=menu_option_widget)
 
-        # c1=GraphCanvas(master=self.master)
-        # c1.get_tk_widget().grid(row=1, sticky="nsew")
-        # self.master.bind('<Configure>', c1.on_resize)
-
         # Create a button to add columns to the second row
         self.add_column_button = Button(self.top_frame, text="Add Column", command=self.add_graph)
         self.add_column_button.grid(row=1, column=0, padx=10, pady=10)
@@ -132,7 +145,6 @@ class MainWindow(Window):
         raise NotImplementedError("Changing headings at runtime is not implemented")
 
     def populate_table(self, df: pd.DataFrame):
-        return
         for i, row in df.iterrows():
             self.tv.insert('', i, text=str(i), values=list(row))
             if i > 100:

@@ -13,7 +13,7 @@ class FileParser:
         self.reduced_data_frame: pd.DataFrame = None
         self.constants: Dict[str: Any] = {}
 
-    def parse(self, skip_rows: int = 3, apply_fixes: bool = True, seperator='\s+', fix_time=True, callback_function=None):
+    def parse(self, skip_rows: int = 3, apply_fixes: bool = True, seperator='\s+', fix_time=True, callback_function=None, ravel_time=True):
         def change_time(time_string):
             zero_time = datetime.datetime.strptime("00:00:0", "%H:%M:%S")
             format_data = "%H:%M:%S.%f"
@@ -29,6 +29,13 @@ class FileParser:
             time_difference = (dt - zero_time).total_seconds()
             return time_difference
 
+        def _ravel_time(times: np.ndarray):
+            time_differences = np.diff(times)
+            reset_points = np.where(time_differences < 0)[0]
+            for reset_point, offset in zip(reset_points, times[reset_points]):
+                times[reset_point+1:] = times[reset_point+1:] + offset
+            return times
+
         self.data_frame = pd.read_csv(self.filename, sep=seperator, skiprows=skip_rows)  # Needed to fix the unicode error
         self.reduced_data_frame = copy.deepcopy(self.data_frame)
         if apply_fixes:
@@ -37,6 +44,8 @@ class FileParser:
                 if fix_time:
                     if 'TIME' in column.upper():
                         times = self.data_frame[column].apply(change_time)
+                        if ravel_time:
+                            times = _ravel_time(times)
                         self.data_frame[column] = self.reduced_data_frame[column] = times
                 if len(unique_values) == 1:
                     self.constants.update({column: unique_values[0]})
@@ -63,3 +72,9 @@ class FileParser:
                     constants.to_excel(writer, sheet_name="Constants", index=False)
         else:
             warnings.warn("Saving in formats other than csv not implemented")
+
+if __name__ == "__main__":
+    filename = "SUFST 1C-10C - RAW DATA.txt"
+    fp = FileParser(filename=filename)
+    fp.parse()
+    fp.save_as("parsed.csv")
