@@ -242,15 +242,20 @@ class GraphCanvas(tk.Frame):
         self.add_command_button.grid(row=len(self.commands) + 3, column=5)
         self.rowconfigure(len(self.commands), weight=1)
 
-    def __init__(self, master, *args, **kwargs):
+    def __init__(self, master, regrid_command, index:int, *args, **kwargs):
         # self.master = master
         GraphCanvas.__instances.append(self)
         super().__init__(master=master, *args, **kwargs)
+        self.index = index
+        self.regrid_command = regrid_command
         validate = master.register(self.validate_limit)
         self.commands = []
         self.errors = {}
         self.current_axis_limits = []
         self.xs, self.ys = np.array([]), np.array([])
+
+        self.close_button = ttk.Button(self, text="X", width=3, command=self.delete)
+        self.close_button.place(anchor="nw", x=5, y=5)
 
         self.graph_canvas = GraphCanvas._GraphCanvas(self)
         self.graph_canvas.get_tk_widget().grid(row=0, column=0, columnspan=6)
@@ -317,6 +322,15 @@ class GraphCanvas(tk.Frame):
             self.rowconfigure(i + 1, weight=1)
         # self.parameters: Dict[str, Any] = {}
 
+    def delete(self) -> None:
+        super().grid_forget()
+        index = self.index
+        super().destroy()
+        self.regrid_command(index)
+
+        #self.master.regrid_commands()
+
+
     def add_command(self):
         command_to_add = self.new_command.get()
         if command_to_add == GraphCanvas.__graph_commands[2]:
@@ -327,7 +341,7 @@ class GraphCanvas(tk.Frame):
             return
         self.commands.append(new_frame)
         row_number = len(self.commands) + 3
-        new_frame.grid(row=row_number - 1, column=0, columnspan=6, sticky="nsew")
+        new_frame.grid(row=row_number - 1, column=0, columnspan=6)
         # Set the column weight for the new column
         self.rowconfigure(row_number - 1, weight=2)
         self.add_command_dropdown.grid(row=row_number, column=0, columnspan=5)

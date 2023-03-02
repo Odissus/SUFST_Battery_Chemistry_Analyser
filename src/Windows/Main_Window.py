@@ -103,29 +103,40 @@ class MainWindow(Window):
             menubar.add_cascade(label=menu_option, menu=menu_option_widget)
 
         # Create a button to add columns to the second row
-        self.add_column_button = Button(self.top_frame, text="Add Column", command=self.add_graph)
-        self.add_column_button.grid(row=1, column=0, padx=10, pady=10)
+        self.add_column_button = ttk.Button(self.bottom_frame, text="Add graph", command=self.add_graph)
+        self.add_column_button.grid(row=0, column=0, sticky="nsew")
+        self.bottom_frame.columnconfigure(0, weight=1)
 
         # Create a button to remove columns from the second row
-        self.remove_column_button = Button(self.top_frame, text="Remove Column", command=self.remove_graph)
-        self.remove_column_button.grid(row=1, column=1, padx=10, pady=10)
+        #self.remove_column_button = Button(self.top_frame, text="Remove Column", command=self.remove_graph)
+        #self.remove_column_button.grid(row=1, column=1, padx=10, pady=10)
 
         self.graph_canvases = []
 
         for i in range(3):
             self.top_frame.columnconfigure(i, weight=1)
 
+    def regrid_graphs(self, index_to_remove: int = None):
+        if index_to_remove is not None:
+            del self.graph_canvases[index_to_remove]
+        for (index, command) in zip(range(len(self.graph_canvases)), self.graph_canvases):
+            self.bottom_frame.columnconfigure(index, weight=2)
+            self.graph_canvases[index].grid(row=0, column=index)
+        self.add_column_button.grid(row=0, column=len(self.graph_canvases), sticky="nsew")
+        self.bottom_frame.columnconfigure(len(self.graph_canvases), weight=1)
+
     def add_graph(self):
         # Create a new label with the current number of columns
         column_number = len(self.graph_canvases) + 1
-        graph_canvas = GraphCanvas(master=self.bottom_frame)
-        graph_canvas.grid(row=0, column=column_number - 1, sticky="nsew", padx=10, pady=10)
+        graph_canvas = GraphCanvas(master=self.bottom_frame, regrid_command=self.regrid_graphs, index=column_number-1)
+        graph_canvas.grid(row=0, column=column_number - 1, sticky="n", padx=10, pady=10)
         # self.master.bind('<Configure>', graph_canvas.on_resize)
         # label = Label(self.bottom_frame, text="Column {}".format(column_number))
         # label.grid(row=0, column=column_number - 1, padx=10, pady=10)
 
         # Add the label to the list of labels
         self.graph_canvases.append(graph_canvas)
+        self.add_column_button.grid(row=0, column=column_number, sticky="nsew")
 
         # Set the column weight for the new column
         self.bottom_frame.columnconfigure(column_number, weight=1)
