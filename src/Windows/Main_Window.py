@@ -35,26 +35,27 @@ class MainWindow(Window):
                 self.constants_boxes.append((text, value, value_var))
 
     class RightFrame(Frame):
-        __mode_words = {"R": ("Recharge", "yellow"),
+        mode_words = {"R": ("Recharge", "yellow"),
                         "C": ("Charge", "green"),
                         "D": ("Discharge", "orange"),
                         "O": ("O", "grey"),
                         "S": ("S", "grey")}
 
-        def __init__(self, master, modes=None, *args, **kwargs):
+        def __init__(self, master, modes=None, callback=None, *args, **kwargs):
             super().__init__(master, *args, **kwargs)
             self.modes = modes
+            self.callback = callback
             self.widget_containers = []
             if modes is not None:
                 self._populate_modes()
 
         def _populate_modes(self):
             for (i, mode) in enumerate(self.modes.keys()):
-                mode_colour = ColorPickerApp(self)
+                mode_colour = ColorPickerApp(self, mode, pick_callback=self.callback)
                 text_to_show = mode
-                if mode in MainWindow.RightFrame.__mode_words.keys():
-                    text_to_show = MainWindow.RightFrame.__mode_words[mode][0]
-                    mode_colour = ColorPickerApp(self, default_colour=MainWindow.RightFrame.__mode_words[mode][1])
+                if mode in MainWindow.RightFrame.mode_words.keys():
+                    text_to_show = MainWindow.RightFrame.mode_words[mode][0]
+                    mode_colour = ColorPickerApp(self, mode, default_colour=MainWindow.RightFrame.mode_words[mode][1], pick_callback=self.callback)
                 label = ttk.Label(self, text=text_to_show)
                 mode_colour.grid(row=i, column=0)
                 label.grid(row=i, column=1)
@@ -111,7 +112,7 @@ class MainWindow(Window):
         # scrollbar
         verscrlbar.pack(side='right', fill='y')
 
-        right_frame = self.RightFrame(self.top_frame, modes=modes)
+        right_frame = self.RightFrame(self.top_frame, modes=modes, callback=self.recolour_table)
         right_frame.grid(row=0, column=2)
 
         # create a menubar
@@ -181,10 +182,21 @@ class MainWindow(Window):
         raise NotImplementedError("Changing headings at runtime is not implemented")
 
     def populate_table(self, df: pd.DataFrame):
-        for i, row in df.iterrows():
-            self.tv.insert('', i, text=str(i), values=list(row))
+        for mode in self.RightFrame.mode_words.keys():
+            self.tv.tag_configure(mode, background=self.RightFrame.mode_words[mode][1])
+        for i, row in self.__data.iterrows():
+            self.tv.insert('', int(i), text=str(i), values=list(row), tags=(row["MD"],))
             if i > 100:
                 return
+
+    def recolour_table(self, new_colour_name_and_colour):
+        self.tv.tag_configure(new_colour_name_and_colour[0], background=new_colour_name_and_colour[1])
+        indexes = self.__data.index[self.__data["MD"] == new_colour_name_and_colour[0]]
+        #for i in indexes:
+        #    if i < 100:
+        #        self.tv.item(i, tags=(new_colour_name_and_colour[0],))
+        #    else:
+        #        return
 
     def parse_raw_data_file(self):
         tl = self.create_top_level_and_lock(FileParsingOptionsWinow)

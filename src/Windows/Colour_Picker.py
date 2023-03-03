@@ -1,10 +1,12 @@
 import tkinter as tk
 from tkinter import colorchooser, ttk
 
+
 class ColorPickerApp(tk.Canvas):
-    def __init__(self, master, default_colour='white', pick_callback=None, *args, **kwargs):
+    def __init__(self, master, identifier: str, default_colour='white', pick_callback=None, *args, **kwargs):
         super().__init__(master, width=30, height=20)
         self.master = master
+        self.identifier = identifier
         self.color = default_colour
         self.pick_callback = pick_callback
 
@@ -19,7 +21,7 @@ class ColorPickerApp(tk.Canvas):
             self.color = color
             self.itemconfig(self.rect, fill=self.color)
             if self.pick_callback is not None:
-                self.pick_callback(color)
+                self.pick_callback((self.identifier, color))
 
 
 if __name__ == "__main__":
