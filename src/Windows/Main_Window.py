@@ -1,6 +1,7 @@
 from src.Windows.Window import Window
 from src.Windows.File_Parsing_Options_Winow import FileParsingOptionsWinow
 from src.Windows.Graph_Frame import GraphCanvas
+from src.Windows.Colour_Picker import ColorPickerApp
 from src.File_Parser import FileParser
 from tkinter import *
 from tkinter import ttk
@@ -26,15 +27,42 @@ class MainWindow(Window):
             text.grid(column=0, row=0, columnspan=2)
             for (i, constant) in enumerate(constants):
                 text = ttk.Label(self, text=constant)
-                text.grid(column=0, row=i+1)
+                text.grid(column=0, row=i + 1)
                 value_var = StringVar()
                 value_var.set(constants[constant])
                 value = ttk.Entry(self, textvariable=value_var, width=10, state="readonly")
-                value.grid(column=1, row=i+1)
+                value.grid(column=1, row=i + 1)
                 self.constants_boxes.append((text, value, value_var))
 
-    def __init__(self, master: Tcl, data=None, constants=None):
-        super().__init__(master, title="SUFST Battery Analyser", geometry="1920x1080")
+    class RightFrame(Frame):
+        __mode_words = {"R": ("Recharge", "yellow"),
+                        "C": ("Charge", "green"),
+                        "D": ("Discharge", "orange"),
+                        "O": ("O", "grey"),
+                        "S": ("S", "grey")}
+
+        def __init__(self, master, modes=None, *args, **kwargs):
+            super().__init__(master, *args, **kwargs)
+            self.modes = modes
+            self.widget_containers = []
+            if modes is not None:
+                self._populate_modes()
+
+        def _populate_modes(self):
+            for (i, mode) in enumerate(self.modes.keys()):
+                mode_colour = ColorPickerApp(self)
+                text_to_show = mode
+                if mode in MainWindow.RightFrame.__mode_words.keys():
+                    text_to_show = MainWindow.RightFrame.__mode_words[mode][0]
+                    mode_colour = ColorPickerApp(self, default_colour=MainWindow.RightFrame.__mode_words[mode][1])
+                label = ttk.Label(self, text=text_to_show)
+                mode_colour.grid(row=i, column=0)
+                label.grid(row=i, column=1)
+                self.widget_containers.append((mode_colour, label))
+
+    def __init__(self, master: Tcl, data=None, constants=None, modes=None, *args, **kwargs):
+        super().__init__(master, title="SUFST Battery Analyser", geometry="1920x1080", *args, **kwargs)
+        self.table_colour_scheme = {}
         headings = list(data.columns)
         GraphCanvas.update_axis_options(headings)
         if data is not None:
@@ -77,17 +105,14 @@ class MainWindow(Window):
         verscrlbar = ttk.Scrollbar(middle_frame,
                                    orient="vertical",
                                    command=self.tv.yview)
-        self.tv.configure(xscrollcommand=verscrlbar.set)
+        self.tv.configure(yscrollcommand=verscrlbar.set)
 
         # Calling pack method w.r.to vertical
         # scrollbar
-        verscrlbar.pack(side='right', fill='x')
+        verscrlbar.pack(side='right', fill='y')
 
-        right_frame = Frame(self.top_frame, borderwidth=2, relief="ridge")
+        right_frame = self.RightFrame(self.top_frame, modes=modes)
         right_frame.grid(row=0, column=2)
-
-        text_label = Label(right_frame, text="hello")
-        text_label.pack()
 
         # create a menubar
         menubar_options = {"File": ["New", "Open", "Save", "Save As"],
@@ -108,8 +133,8 @@ class MainWindow(Window):
         self.bottom_frame.columnconfigure(0, weight=1)
 
         # Create a button to remove columns from the second row
-        #self.remove_column_button = Button(self.top_frame, text="Remove Column", command=self.remove_graph)
-        #self.remove_column_button.grid(row=1, column=1, padx=10, pady=10)
+        # self.remove_column_button = Button(self.top_frame, text="Remove Column", command=self.remove_graph)
+        # self.remove_column_button.grid(row=1, column=1, padx=10, pady=10)
 
         self.graph_canvases = []
 
@@ -128,7 +153,7 @@ class MainWindow(Window):
     def add_graph(self):
         # Create a new label with the current number of columns
         column_number = len(self.graph_canvases) + 1
-        graph_canvas = GraphCanvas(master=self.bottom_frame, regrid_command=self.regrid_graphs, index=column_number-1)
+        graph_canvas = GraphCanvas(master=self.bottom_frame, regrid_command=self.regrid_graphs, index=column_number - 1)
         graph_canvas.grid(row=0, column=column_number - 1, sticky="n", padx=10, pady=10)
         # self.master.bind('<Configure>', graph_canvas.on_resize)
         # label = Label(self.bottom_frame, text="Column {}".format(column_number))

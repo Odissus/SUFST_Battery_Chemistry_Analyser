@@ -11,6 +11,6 @@ if __name__ == "__main__":
     #print(fp.constants)
     #print(fp.reduced_data_frame.head())
     root = Tk()
-    mw = MainWindow(root, data=fp.reduced_data_frame, constants=fp.constants)
+    mw = MainWindow(root, data=fp.reduced_data_frame, constants=fp.constants, modes=fp.cycles_start_indexes)
     mw.populate_table(fp.reduced_data_frame)
     root.mainloop()
