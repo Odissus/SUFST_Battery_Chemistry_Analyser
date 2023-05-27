@@ -111,6 +111,7 @@ class Integrate(GraphCommand):
 
     def __init__(self, master, command_index: int):
         super().__init__(master, command_index)
+        self.__results_array = []
         validate = master.register(self._validate_limit)
 
         self.remove_command_button = ttk.Button(self, text="-", width=3, command=self.delete)
@@ -178,14 +179,69 @@ class Integrate(GraphCommand):
         # Allow the new value
         return True
 
+    def handle_save_button(self):
+        pass
+
     def integrate(self):
-        integration_method = self.integration_methods.get()
-        xs, ys = self.master.xs, self.master.ys
-        if integration_method == Integrate._integration_methods[0]:
-            result = integrate.trapezoid(ys, xs, dx=1)
-        elif integration_method == Integrate._integration_methods[1]:
-            result = integrate.simpson(ys, xs, dx=1)
-        self.result.set(result)
+        if self.master.cyclic_mode:
+            toplevel = tk.Toplevel(self.master)
+
+            # Customize the Toplevel window
+            toplevel.title("Integration Results")
+            toplevel.geometry("400x400")
+            top_frame = tk.Frame(toplevel)
+            top_frame.grid(row=0, column=0)
+            table_frame = tk.Frame(toplevel)
+            table_frame.grid(row=1, column=0)
+
+            Heading = ttk.Label(top_frame, text="Integration results   ")
+            Heading.grid(row=0, column=0)
+            Save = ttk.Button(top_frame,text="🖫", command=self.handle_save_button)
+            Save.grid(row=0, column=1)
+            # Create a Treeview widget for the table
+            treeview = ttk.Treeview(table_frame, columns=("x_min", "x_max", "y_min", "y_max", "result"), show="headings")
+            treeview.pack(fill=tk.BOTH, expand=True)
+            treeview.heading("x_min", text="x min")
+            treeview.heading("x_max", text="x max")
+            treeview.heading("y_min", text="y min")
+            treeview.heading("y_max", text="y max")
+            treeview.heading("result", text="Result")
+
+            # Create a Scrollbar widget for vertical scrolling
+            treeview.pack(side='left')
+            scrollbar = ttk.Scrollbar(table_frame,
+                                       orient="vertical",
+                                       command=treeview.yview)
+            treeview.configure(yscrollcommand=scrollbar.set)
+            scrollbar.pack(side='right', fill='y')
+
+            # Configure the Treeview to work with the Scrollbar
+            treeview.configure(yscrollcommand=scrollbar.set)
+            scrollbar.configure(command=treeview.yview)
+
+            # Configure the columns of the Treeview
+            integration_method = self.integration_methods.get()
+            # Add some sample data to the Treeview
+            self.__results_array = []
+            for xs, ys in zip(self.master.xs_split, self.master.ys_split):
+                if integration_method == Integrate._integration_methods[0]:
+                    result = integrate.trapezoid(ys, xs, dx=1)
+                elif integration_method == Integrate._integration_methods[1]:
+                    result = integrate.simpson(ys, xs, dx=1)
+
+                x_range = np.min(xs), np.max(xs)
+                y_range = np.min(ys), np.max(ys)
+                results = (x_range[0], x_range[1], y_range[0], y_range[1], result)
+                self.__results_array.append(results)
+                treeview.insert("", tk.END, values=results)
+        else:
+            integration_method = self.integration_methods.get()
+            xs, ys = self.master.xs, self.master.ys
+            if integration_method == Integrate._integration_methods[0]:
+                result = integrate.trapezoid(ys, xs, dx=1)
+            elif integration_method == Integrate._integration_methods[1]:
+                result = integrate.simpson(ys, xs, dx=1)
+            self.result.set(result)
 
     @property
     def graph_command(self):
@@ -197,6 +253,11 @@ class GraphCanvas(tk.Frame):
     __possible_axes: List[str] = []
     __instances: List['GraphCanvas'] = []
     __data: Any = None
+    mode_words = {"R": ("Recharge", "yellow"),
+                  "C": ("Charge", "green"),
+                  "D": ("Discharge", "orange"),
+                  "O": ("O", "grey"),
+                  "S": ("S", "grey")}
 
     class _GraphCanvas(FigureCanvasTkAgg):
         def __init__(self, master):
@@ -262,8 +323,22 @@ class GraphCanvas(tk.Frame):
         self.cycle_button_text = tk.StringVar()
         self.cycle_button_text.set("⮔")  # ⭢
         self.cycle_button = ttk.Button(self, textvariable=self.cycle_button_text, width=3,
-                                       command=self.split_by_most_common_frequency)
+                                       command=self.handle_cyclic_button)
+        self.cycle_button.state(['disabled'])
         self.cycle_button.place(anchor="nw", x=5, y=30)
+        self.cyclic_mode = False
+        modes = self.__data["MD"].unique()
+        self.mode_buttons = {}
+        self.modes_to_exclude = {}
+        for i, mode in enumerate(modes):
+            mode_button_text = tk.StringVar()
+            mode_button_text.set(mode)
+            mode_button = ttk.Button(self, textvariable=mode_button_text, width=3,
+                                                         command= lambda button_mode=mode: self._handle_mode_button(button_mode))
+            mode_button.state(['pressed', 'disabled'])
+            mode_button.place(anchor="nw", x=5, y=55 + 25 * i)
+            self.mode_buttons[mode] = {"text": mode_button_text, "button": mode_button}
+            self.modes_to_exclude[mode] = False
 
         self.graph_canvas = GraphCanvas._GraphCanvas(self)
         self.graph_canvas.get_tk_widget().grid(row=0, column=0, columnspan=6)
@@ -328,7 +403,28 @@ class GraphCanvas(tk.Frame):
         self.add_command_button.grid(row=3, column=5)
         for i in range(3):
             self.rowconfigure(i + 1, weight=1)
-        # self.parameters: Dict[str, Any] = {}
+        self._update_graph()
+
+    def handle_cyclic_button(self, set_to_false=False):
+        if self.cyclic_mode or set_to_false:
+            self.cyclic_mode = True  # so that at the end it gets set to false
+            self.cycle_button.state(['!pressed'])
+            for button in self.mode_buttons.values():
+                button['button'].state(['disabled'])
+        else:
+            self.cycle_button.state(['pressed'])
+            for button in self.mode_buttons.values():
+                button['button'].state(['!disabled'])
+                self.split_by_most_common_frequency()
+        self.cyclic_mode = not self.cyclic_mode
+
+    def _handle_mode_button(self, button_mode):
+        if self.modes_to_exclude[button_mode]:
+            self.mode_buttons[button_mode]["button"].state(['pressed'])
+        else:
+            self.mode_buttons[button_mode]["button"].state(['!pressed'])
+        self.modes_to_exclude[button_mode] = not self.modes_to_exclude[button_mode]
+        self.split_by_most_common_frequency()
 
     def delete(self) -> None:
         super().grid_forget()
@@ -355,12 +451,8 @@ class GraphCanvas(tk.Frame):
         self.add_command_button.grid(row=row_number, column=5)
         self.rowconfigure(row_number, weight=1)
 
-    def _change_button_icon(self, button_text_variable):
-        pass
-
     def split_by_most_common_frequency(self):
         # Calculate the length of each segment based on the repeating frequency
-        data_arrays = []
         power_arrays = []
         time_arrays = []
         mode_changes = np.diff(self.__data['__MDToken'].values)
@@ -372,6 +464,9 @@ class GraphCanvas(tk.Frame):
         start_index = 0
 
         for end_index in change_indices:
+            if self.modes_to_exclude[self.__data["MD"][start_index]]:
+                start_index = end_index
+                continue
             power_array = self.ys[start_index:end_index]
             time_array = self.xs[start_index:end_index]
             time_array -= time_array[0]  # Reset time to 0 for each array
@@ -392,15 +487,19 @@ class GraphCanvas(tk.Frame):
             self.x_axis_dropdown.set(GraphCanvas.__possible_axes[0])
 
     def _update_graph(self, *args, cycles=False):
-        if cycles:
+        if cycles or self.cyclic_mode:
             self.graph_canvas.ax.cla()
             for (xs, ys) in zip(self.xs_split, self.ys_split):
                 self.graph_canvas.ax.plot(xs, ys)
             self.graph_canvas.draw()
             return
-
         y_col, y_min, y_max = self.y_axis.get(), self.min_y_axis.get(), self.max_y_axis.get()
         x_col, x_min, x_max = self.x_axis.get(), self.min_x_axis.get(), self.max_x_axis.get()
+        if x_col == "Time":
+            self.cycle_button.state(['!disabled'])
+        else:
+            self.cycle_button.state(['disabled'])
+            self.handle_cyclic_button(set_to_false=True)
         # Correct the limits
         y_min = -np.inf if y_min in ["", "-"] else float(y_min)
         y_max = np.inf if y_max in ["", "-"] else float(y_max)
@@ -414,7 +513,6 @@ class GraphCanvas(tk.Frame):
         self.xs, self.ys = np.array(subset[x_col]), np.array(subset[y_col])
         if len(self.xs.shape) == 2:
             self.xs, self.ys = self.xs.T[0], self.xs.T[0]
-        print(self.xs)
         self.graph_canvas.ax.cla()
         self.graph_canvas.ax.plot(self.xs, self.ys)
         self.graph_canvas.draw()
