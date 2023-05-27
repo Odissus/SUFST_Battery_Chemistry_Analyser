@@ -8,6 +8,7 @@ import numpy as np
 import scipy.integrate as integrate
 import scipy.optimize as optimise
 from numpy.polynomial import Polynomial
+from scipy.fft import fft
 
 
 class GraphCommand(tk.Frame):
@@ -99,7 +100,7 @@ class CurveFit(GraphCommand):
         if method == CurveFit._curve_fits[0]:
             degree = int(self.control_variable.get())
             coef = np.round(np.polyfit(xs, ys, degree), 5)
-            result = "+".join([f"{c}x^{len(coef)-i-1}" for (i, c) in enumerate(coef)])
+            result = "+".join([f"{c}x^{len(coef) - i - 1}" for (i, c) in enumerate(coef)])
         elif method == CurveFit._curve_fits[1]:
             result = integrate.simpson(ys, xs, dx=1)
         self.result.set(result)
@@ -242,7 +243,7 @@ class GraphCanvas(tk.Frame):
         self.add_command_button.grid(row=len(self.commands) + 3, column=5)
         self.rowconfigure(len(self.commands), weight=1)
 
-    def __init__(self, master, regrid_command, index:int, *args, **kwargs):
+    def __init__(self, master, regrid_command, index: int, *args, **kwargs):
         # self.master = master
         GraphCanvas.__instances.append(self)
         super().__init__(master=master, *args, **kwargs)
@@ -253,9 +254,16 @@ class GraphCanvas(tk.Frame):
         self.errors = {}
         self.current_axis_limits = []
         self.xs, self.ys = np.array([]), np.array([])
+        self.xs_split, self.ys_split = np.array([]), np.array([])
 
         self.close_button = ttk.Button(self, text="X", width=3, command=self.delete)
         self.close_button.place(anchor="nw", x=5, y=5)
+
+        self.cycle_button_text = tk.StringVar()
+        self.cycle_button_text.set("⮔")  # ⭢
+        self.cycle_button = ttk.Button(self, textvariable=self.cycle_button_text, width=3,
+                                       command=self.split_by_most_common_frequency)
+        self.cycle_button.place(anchor="nw", x=5, y=30)
 
         self.graph_canvas = GraphCanvas._GraphCanvas(self)
         self.graph_canvas.get_tk_widget().grid(row=0, column=0, columnspan=6)
@@ -328,8 +336,7 @@ class GraphCanvas(tk.Frame):
         super().destroy()
         self.regrid_command(index)
 
-        #self.master.regrid_commands()
-
+        # self.master.regrid_commands()
 
     def add_command(self):
         command_to_add = self.new_command.get()
@@ -348,6 +355,33 @@ class GraphCanvas(tk.Frame):
         self.add_command_button.grid(row=row_number, column=5)
         self.rowconfigure(row_number, weight=1)
 
+    def _change_button_icon(self, button_text_variable):
+        pass
+
+    def split_by_most_common_frequency(self):
+        # Calculate the length of each segment based on the repeating frequency
+        data_arrays = []
+        power_arrays = []
+        time_arrays = []
+        mode_changes = np.diff(self.__data['__MDToken'].values)
+
+        # Find the indices where mode changes occur
+        change_indices = np.where(mode_changes != 0)[0] + 1
+
+        # Split the data
+        start_index = 0
+
+        for end_index in change_indices:
+            power_array = self.ys[start_index:end_index]
+            time_array = self.xs[start_index:end_index]
+            time_array -= time_array[0]  # Reset time to 0 for each array
+            time_arrays.append(time_array)
+            power_arrays.append(power_array)
+            start_index = end_index
+
+        self.xs_split, self.ys_split = time_arrays, power_arrays
+        self._update_graph(cycles=True)
+
     def _update_graph_axis_options(self):
         self.y_axis_dropdown.configure(values=GraphCanvas.__possible_axes)
         self.y_axis_dropdown.set(GraphCanvas.__possible_axes[0])
@@ -357,7 +391,14 @@ class GraphCanvas(tk.Frame):
         else:
             self.x_axis_dropdown.set(GraphCanvas.__possible_axes[0])
 
-    def _update_graph(self, *args):
+    def _update_graph(self, *args, cycles=False):
+        if cycles:
+            self.graph_canvas.ax.cla()
+            for (xs, ys) in zip(self.xs_split, self.ys_split):
+                self.graph_canvas.ax.plot(xs, ys)
+            self.graph_canvas.draw()
+            return
+
         y_col, y_min, y_max = self.y_axis.get(), self.min_y_axis.get(), self.max_y_axis.get()
         x_col, x_min, x_max = self.x_axis.get(), self.min_x_axis.get(), self.max_x_axis.get()
         # Correct the limits

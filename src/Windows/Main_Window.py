@@ -64,8 +64,15 @@ class MainWindow(Window):
     def __init__(self, master: Tcl, data=None, constants=None, modes=None, *args, **kwargs):
         super().__init__(master, title="SUFST Battery Analyser", geometry="1920x1080", *args, **kwargs)
         self.table_colour_scheme = {}
-        headings = list(data.columns)
+        # Tokenize the modes to map them to numbers
+        data['__MDToken'] = pd.Categorical(data['MD']).codes
+        headings = data.select_dtypes(include='number').columns.tolist()
+        headings.remove("Time.1")
+        headings.remove("Time.2")
+        headings.remove("__MDToken")
         GraphCanvas.update_axis_options(headings)
+        headings = list(data.columns)
+        headings.remove("__MDToken")
         if data is not None:
             MainWindow.__data = data
             GraphCanvas.update_data(data)
